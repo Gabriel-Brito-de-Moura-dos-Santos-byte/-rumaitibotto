@@ -61,8 +61,8 @@ async function startBot() {
 
       // Pasta temporária na VPS
       const tempId = `temp_${Date.now()}_${msg.key.id}`;
-      const tempMp4 = path.resolve(__dirname, ${tempId}.mp4);
-      const tempWebp = path.resolve(__dirname, ${tempId}.webp);
+      const tempMp4 = path.resolve(__dirname, `${tempId}.mp4`);
+      const tempWebp = path.resolve(__dirname, `${tempId}.webp`);
 
       try {
         const buffer = await downloadMediaMessage(messageWithMedia, "buffer", {}, {});
@@ -74,6 +74,10 @@ async function startBot() {
             .toBuffer();
           await sock.sendMessage(jid, { sticker });
         } 
+      } catch (error) {
+        console.error("Erro ao criar figurinha:", error);
+        await sock.sendMessage(jid, { text: "❌ Ocorreu um erro ao processar sua figurinha." });
+      }
         
         else if (isVideo) {
           await fs.writeFile(tempMp4, buffer);
