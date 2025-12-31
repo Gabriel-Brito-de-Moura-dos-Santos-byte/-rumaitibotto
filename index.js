@@ -64,7 +64,7 @@ async function startBot() {
       const tempMp4 = path.resolve(__dirname, `${tempId}.mp4`);
       const tempWebp = path.resolve(__dirname, `${tempId}.webp`);
 
-      try {
+     try {
         const buffer = await downloadMediaMessage(messageWithMedia, "buffer", {}, {});
 
         if (isImage) {
@@ -74,13 +74,14 @@ async function startBot() {
             .toBuffer();
           await sock.sendMessage(jid, { sticker });
         } 
+        else if (isVideo) { // O else if deve vir colado no } do if
+          await fs.writeFile(tempMp4, buffer);
+          // ... resto da lógica do ffmpeg
+        }
       } catch (error) {
         console.error("Erro ao criar figurinha:", error);
-        await sock.sendMessage(jid, { text: "❌ Ocorreu um erro ao processar sua figurinha." });
+        await sock.sendMessage(jid, { text: "❌ Erro ao processar." });
       }
-        
-        else if (isVideo) {
-          await fs.writeFile(tempMp4, buffer);
           await new Promise((resolve, reject) => {
             ffmpeg(tempMp4)
               .outputOptions([
