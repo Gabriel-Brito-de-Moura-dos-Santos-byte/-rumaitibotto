@@ -96,7 +96,9 @@ async function startBot() {
           await sock.sendMessage(jid, { sticker });
         }
       } catch (e) {
-        console.error("Erro:", e);
+  console.error("Erro:", e);
+  await sock.sendMessage(jid, { text: "❌ Falha ao processar mídia. Verifique o formato ou duração." });
+}
       } finally {
         if (fs.existsSync(tempMp4)) fs.unlinkSync(tempMp4);
         if (fs.existsSync(tempWebp)) fs.unlinkSync(tempWebp);
