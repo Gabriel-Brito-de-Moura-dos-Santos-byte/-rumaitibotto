@@ -12,7 +12,6 @@ const pino = require("pino");
 const path = require("path");
 
 async function startBot() {
-  // Define a pasta de autenticação
   const authPath = path.resolve(__dirname, "auth_info");
   const { state, saveCreds } = await useMultiFileAuthState(authPath);
 
@@ -20,7 +19,6 @@ async function startBot() {
     auth: state,
     printQRInTerminal: true,
     logger: pino({ level: "silent" }),
-    // Identificação do navegador para evitar banimentos
     browser: ["StickerBot-VPS", "Chrome", "1.0.0"]
   });
 
@@ -41,8 +39,10 @@ async function startBot() {
     if (!msg.message || msg.key.fromMe) return;
 
     const jid = msg.key.remoteJid;
-    const text = msg.message.conversation || msg.message.extendedTextMessage?.text || 
-                 msg.message.imageMessage?.caption || msg.message.videoMessage?.caption || "";
+    const text = msg.message.conversation || 
+                 msg.message.extendedTextMessage?.text || 
+                 msg.message.imageMessage?.caption || 
+                 msg.message.videoMessage?.caption || "";
     
     if (text.toLowerCase() === "/menu") {
         return await sock.sendMessage(jid, { text: "🤖 Sticker Bot VPS\n\nEnvie imagem/vídeo com !fig" });
@@ -56,50 +56,58 @@ async function startBot() {
 
       if (!isImage && !isVideo) return;
 
+      // Monta o objeto correto para download
       const messageWithMedia = isQuotedImage ? { message: msg.message.extendedTextMessage.contextInfo.quotedMessage } : 
-                              isQuotedVideo ? { message: msg.message.extendedTextMessage.contextInfo.quotedMessage } : msg;
+                               isQuotedVideo ? { message: msg.message.extendedTextMessage.contextInfo.quotedMessage } : msg;
 
-      // Pasta temporária na VPS
+      // Define caminhos temporários
       const tempId = `temp_${Date.now()}_${msg.key.id}`;
       const tempMp4 = path.resolve(__dirname, `${tempId}.mp4`);
       const tempWebp = path.resolve(__dirname, `${tempId}.webp`);
 
-     try {
-        const buffer = await downloadMediaMessage(messageWithMedia, "buffer", {}, {});
+      try {
+        // 1. Download do Buffer
+        const buffer = await downloadMediaMessage(messageWithMedia, "buffer", {}, { logger: pino({ level: "silent" }) });
 
+        // 2. Processamento se for IMAGEM
         if (isImage) {
           const sticker = await sharp(buffer)
             .resize(512, 512, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
             .webp()
             .toBuffer();
+          
           await sock.sendMessage(jid, { sticker });
         } 
-        else if (isVideo) { // O else if deve vir colado no } do if
+        
+        // 3. Processamento se for VÍDEO (GIF ANIMADO)
+        else if (isVideo) {
           await fs.writeFile(tempMp4, buffer);
-          // ... resto da lógica do ffmpeg
-        }
-      } catch (error) {
-        console.error("Erro ao criar figurinha:", error);
-        await sock.sendMessage(jid, { text: "❌ Erro ao processar." });
-      }
+
           await new Promise((resolve, reject) => {
             ffmpeg(tempMp4)
+              .inputOptions(["-y"]) // Sobrescrever se existir
               .outputOptions([
-                "-vcodec libwebp", "-vf scale='if(gt(iw,ih),512,-1)':'if(gt(ih,iw),512,-1)',fps=15,pad=512:512:(512-iw)/2:(512-ih)/2:color=0x00000000",
-                "-lossless 1", "-loop 0", "-an", "-vsync 0"
+                "-vcodec libwebp",
+                "-vf scale='if(gt(iw,ih),512,-1)':'if(gt(ih,iw),512,-1)',fps=15,pad=512:512:(512-iw)/2:(512-ih)/2:color=0x00000000",
+                "-lossless 1",
+                "-loop 0",
+                "-an",
+                "-vsync 0"
               ])
               .save(tempWebp)
               .on("end", resolve)
               .on("error", reject);
           });
+
           const sticker = await fs.readFile(tempWebp);
           await sock.sendMessage(jid, { sticker });
         }
-      } catch (e) {
-  console.error("Erro:", e);
-  await sock.sendMessage(jid, { text: "❌ Falha ao processar mídia. Verifique o formato ou duração." });
-}
+
+      } catch (error) {
+        console.error("Erro ao criar figurinha:", error);
+        await sock.sendMessage(jid, { text: "❌ Erro ao processar mídia." });
       } finally {
+        // Limpeza dos arquivos temporários sempre acontece aqui
         if (fs.existsSync(tempMp4)) fs.unlinkSync(tempMp4);
         if (fs.existsSync(tempWebp)) fs.unlinkSync(tempWebp);
       }
