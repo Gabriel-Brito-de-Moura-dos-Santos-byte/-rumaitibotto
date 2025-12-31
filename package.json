@@ -1,0 +1,16 @@
+{
+  "name": "bot-figurinhas",
+  "version": "1.0.0",
+  "description": "Bot de figurinhas para Grupo de WhatsApp",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.5.0",
+    "sharp": "^0.32.6",
+    "fluent-ffmpeg": "^2.1.2",
+    "fs-extra": "^11.1.1",
+    "pino": "^8.15.0"
+  }
+}
