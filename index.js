@@ -60,7 +60,7 @@ async function startBot() {
                               isQuotedVideo ? { message: msg.message.extendedTextMessage.contextInfo.quotedMessage } : msg;
 
       // Pasta temporária na VPS
-      const tempId = temp_${Date.now()}_${msg.key.id};
+      const tempId = `temp_${Date.now()}_${msg.key.id}`;
       const tempMp4 = path.resolve(__dirname, ${tempId}.mp4);
       const tempWebp = path.resolve(__dirname, ${tempId}.webp);
 
